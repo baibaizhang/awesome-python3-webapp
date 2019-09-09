@@ -10,13 +10,13 @@ print(currentMouseX,currentMouseY)
 # pyautogui.dragTo(1910,368)
 
 # 移动到某个起始位置
-pyautogui.moveTo(544, 666)
+# pyautogui.moveTo(544, 666)
 
 # #  鼠标向右移动x像素
 # pyautogui.moveRel(14, 0)
 
 # 移动到某个结束位置
-pyautogui.moveTo(1350, 666)
+# pyautogui.moveTo(1350, 666)
 
 # pyautogui.moveTo(544, 1000)
 # pyautogui.click()
