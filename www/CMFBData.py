@@ -18,9 +18,9 @@ import pyautogui
 from operator import itemgetter
 from itertools import groupby
 
-class CMBFData(object):
+class CMFBData(object):
     def __init__(self, load_parameter='silent'):
-        print(self.__class__.__name__+" __init__")
+        # print(self.__class__.__name__+" __init__")
         # 给浏览器设置属性
         option = webdriver.ChromeOptions()
         # 隐藏警告语‘Chrome正在受到自动软件的控制’
@@ -44,7 +44,7 @@ class CMBFData(object):
     def __del__(self):
         # 关闭浏览器
         self.browser.quit()
-        print(self.__class__.__name__+" __del__")
+        # print(self.__class__.__name__+" __del__")
 
     # 解析网页获取筹码分布数据并返回数据
     def _get_cmfb_data(self):
@@ -62,7 +62,7 @@ class CMBFData(object):
             data[COLUMN_LIST[index]] = span.contents[0]
             index = index + 1
 
-        print(data)
+        # print(data)
         return data
         
 
@@ -103,19 +103,21 @@ class CMBFData(object):
                 continue
 
     def get_data_current(self,code):
-        data_list = []
+        # data_list = []
+        data={}
 
         url = self._get_url(code)
         # 如果网页加载失败,直接返回
         if not self._load_web(url):
             print("网页加载失败: " + url)
-            return data_list
+            return data
         
         data = self._get_cmfb_data()
-        data_list.append(data)
+        return data
+        # data_list.append(data)
 
-        print(data_list)
-        return data_list
+        # print(data_list)
+        # return data_list
 
     def get_data_history(self,code):
         data_list = []
