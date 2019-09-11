@@ -47,7 +47,7 @@ class CMFBData(object):
         # print(self.__class__.__name__+" __del__")
 
     # 解析网页获取筹码分布数据并返回数据
-    def _get_cmfb_data(self):
+    def _parse_page(self):
         COLUMN_LIST = ('日期','获利比例','亏损比例','平均成本','90%成本','90成本集中度','70%成本','70成本集中度')
         count = len(COLUMN_LIST)
         data = {}
@@ -57,8 +57,6 @@ class CMFBData(object):
         for span in soup.find(class_="__emchatrs3_cmfb").find_all('span'):
             if index >= count:
                 break
-            if index == 0:
-                date = span.contents[0]
             data[COLUMN_LIST[index]] = span.contents[0]
             index = index + 1
 
@@ -67,18 +65,22 @@ class CMFBData(object):
         
 
     def _get_url(self, code):
-        codelist = {'60': 'sh', '00':'sz', '30':'sz'}
-        for item in codelist:
-            if code.startswith(item):
-                return "http://quote.eastmoney.com/concept/" + codelist[item] + code + ".html"
+        code_map = {'60': 'sh', '00':'sz', '30':'sz'}
+        code_str = ''
+        if isinstance(code, int):
+            code_str = str(code)
+        elif isinstance(code, float):
+            code_str = str(code)
+        elif isinstance(code, str):
+            code_str = code
+        for item in code_map:
+            if code_str.startswith(item):
+                return "http://quote.eastmoney.com/concept/" + code_map[item] + code_str + ".html"
 
-    # 打开并加载网页，等待完成
+    # 打开并加载网页, 重复3次
     def _load_web(self, url):
-        # 这里经常出现加载超的异常，后面需要处理一下：捕获异常后，刷新浏览器
-        retry_time = 3
-        while True:
-            if retry_time == 0:
-                return False
+        retry_time = 0
+        while retry_time <= 3:
             try:
                 browser = self.browser
                 browser.get(url)
@@ -98,11 +100,11 @@ class CMFBData(object):
                 # wait.until(EC.visibility_of_element_located((By.XPATH, "//div[@class='__emchatrs3_cmfb']" )))
                 wait.until(EC.text_to_be_present_in_element((By.XPATH,"//div[@class='__emchatrs3_cmfb']"),u'集中度'))
                 return True
-            except TimeoutException:
-                retry_time = retry_time - 1
-                continue
+            except Exception as e:
+                print("[INFO] %s%s" % (e,url))
+                retry_time = retry_time + 1
 
-    def get_data_current(self,code):
+    def get_current(self,code):
         # data_list = []
         data={}
 
@@ -112,14 +114,14 @@ class CMFBData(object):
             print("网页加载失败: " + url)
             return data
         
-        data = self._get_cmfb_data()
+        data = self._parse_page()
         return data
         # data_list.append(data)
 
         # print(data_list)
         # return data_list
 
-    def get_data_history(self,code):
+    def get_history(self,code):
         data_list = []
 
         url = self._get_url(code)
@@ -162,7 +164,7 @@ class CMFBData(object):
         time.sleep(2)
 
         while currentX < END_X:
-            data = self._get_cmfb_data()
+            data = self._parse_page()
             data_list.append(data)
 
             # #  鼠标向右移动x像素
@@ -195,8 +197,8 @@ def main():
     # test.get_data_current('000002')
 
     # 抓取历史数据必须打开浏览器到前台
-    test = CMBFData('show_browser')
-    test.get_data_history('000002')
+    test = CMFBData('show_browser')
+    test.get_history('000002')
     # test.getData('000002')
     # test.getData('601318')
     # test.getData('300002')

@@ -9,13 +9,24 @@
 import requests,time,os,xlwt,xlrd,random
 from CMFBData import CMFBData
 from ExcelData import ExcelData
+from multiprocessing import Process, Queue
+from eastmoney import EastMoneyConcept
+
+
 
 
 def get_url(code):
-        codelist = {'60': 'sh', '00':'sz', '30':'sz'}
-        for item in codelist:
-            if code.startswith(item):
-                return "http://quote.eastmoney.com/concept/" + codelist[item] + code + ".html"
+    code_map = {'60': 'sh', '00':'sz', '30':'sz'}
+    code_str = ''
+    if isinstance(code, int):
+        code_str = str(code)
+    elif isinstance(code, float):
+        code_str = str(code)
+    elif isinstance(code, str):
+        code_str = code
+    for item in code_map:
+        if code_str.startswith(item):
+            return "http://quote.eastmoney.com/concept/" + code_map[item] + code_str + ".html"
 
 def save_data(save_path, data_list):
     excel_data = ExcelData(save_path)
@@ -55,7 +66,7 @@ def collect_win_percent_stock(stock_list_path, save_path):
             percent = new_percent
         code = stock['code']
         name = stock['名称']
-        data_current = cmfb_data.get_data_current(code)
+        data_current = cmfb_data.get_current(code)
         if not data_current: #为空就跳过
             continue
         stock['日期'] = data_current['日期']
@@ -67,17 +78,44 @@ def collect_win_percent_stock(stock_list_path, save_path):
     #save_path = "D:\\pythonData\\分析数据\\WinTestData20190908.xls"
     save_data(save_path,win_list)
 
+def get_cmfb_data(stock, q):
+    pass
+
+
+def get_cmfb_data_today_from_stocklist(stock_list_path, save_path):
+    # 创建一个队列用来保存进程获取到的数据
+    q = Queue()
+    # 读取股票列表
+    excel = ExcelData(stock_list_path)                       #定义get_data对象, sheet名称默认Sheet1
+    # stock_list = excel.read_excel()
+    stock_list = ['000002','000001','000004']
+
+    # 保存进程
+    Process_list = []
+    # 创建并启动进程
+    for stock in stock_list:
+        # p = EastMoneyConcept(stock['code'],q)
+        p = EastMoneyConcept(stock,q)
+        p.start()
+        Process_list.append(p)
+    
+    # 让主进程等待子进程执行完成
+    for i in Process_list:
+        i.join()
+
+    while not q.empty():
+        print(q.get())
 
 def main():
-    date = time.strftime('%Y%m%d')
-    # collect_win_percent_stock("D:\\pythonData\\股票数据\\深AData20190908.xls", "D:\\pythonData\\分析数据\\分析-深A"+'Data'+date+'.xls')
-    # collect_win_percent_stock("D:\\pythonData\\股票数据\\中小板Data20190908.xls", "D:\\pythonData\\分析数据\\分析-中小板"+'Data'+date+'.xls')
-    # collect_win_percent_stock("D:\\pythonData\\股票数据\\沪AData20190908.xls", "D:\\pythonData\\分析数据\\分析-沪A"+'Data'+date+'.xls')
-    # collect_win_percent_stock("D:\\pythonData\\股票数据\\华为5G.xls", "D:\\pythonData\\分析数据\\分析-华为5G"+'Data'+date+'.xls')
-    collect_win_percent_stock("D:\\pythonData\\股票数据\\TestData20190908.xls", "D:\\pythonData\\分析数据\\分析-TestData"+'Data'+date+'.xls')
+    # date = time.strftime('%Y%m%d')
+    # # collect_win_percent_stock("D:\\pythonData\\股票数据\\深AData20190908.xls", "D:\\pythonData\\分析数据\\分析-深A"+'Data'+date+'.xls')
+    # # collect_win_percent_stock("D:\\pythonData\\股票数据\\中小板Data20190908.xls", "D:\\pythonData\\分析数据\\分析-中小板"+'Data'+date+'.xls')
+    # # collect_win_percent_stock("D:\\pythonData\\股票数据\\沪AData20190908.xls", "D:\\pythonData\\分析数据\\分析-沪A"+'Data'+date+'.xls')
+    # # collect_win_percent_stock("D:\\pythonData\\股票数据\\华为5G.xls", "D:\\pythonData\\分析数据\\分析-华为5G"+'Data'+date+'.xls')
+    # collect_win_percent_stock("D:\\pythonData\\股票数据\\TestData20190908.xls", "D:\\pythonData\\分析数据\\分析-TestData"+'Data'+date+'.xls')
+    get_cmfb_data_today_from_stocklist("D:\\pythonData\\股票数据\\深AData20190911.xls","")
 
-
-
+    
  
 if __name__ == '__main__':
     main()

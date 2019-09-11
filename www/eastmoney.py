@@ -1,131 +1,272 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-__author__ = 'wally'
-
-'''
-get eastmoney data 
-'''
-
-import re
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib
-import requests
+''''' 
+@author: steve 
+从东方财富网获取股票列表数据
+'''  
+ 
+import requests,time,os,xlwt,xlrd,random
 from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from fake_useragent import UserAgent
+from ExcelData import ExcelData
+from multiprocessing import Process, Queue
+ 
 
-#指定默认字体
-matplotlib.rcParams['font.sans-serif'] = ['SimHei']
-matplotlib.rcParams['font.family']='sans-serif'
-#解决负号'-'显示为方块的问题
-matplotlib.rcParams['axes.unicode_minus'] = False
+class EastMoney(): 
+    def _init_browser(self):
+        # 给浏览器设置属性
+        option = webdriver.ChromeOptions()
+        # 设置默认隐藏，后台运行
+        option.add_argument("headless")
+        # 产生随机user-agent
+        option.add_argument(UserAgent().random)
+        return webdriver.Chrome(options=option)
 
-# 抓取网页
-def get_url(url, params=None, proxies=None):
-    rsp = requests.get(url, params=params, proxies=proxies)
-    rsp.raise_for_status()
-    return rsp.text
+    def _request_url(self, browser, url):
+        retry_time = 0
+        while retry_time <= 3:
+            try:
+                print("请求url:"+url)
+                browser.get(url)
+                return True
+            except Exception as e:
+                print("%s%s" % (e,url))
+                retry_time = retry_time + 1
+        return False
 
-# 从网页抓取数据
-def get_fund_data(code,per=10,sdate='',edate='',proxies=None):
-    url = 'http://fund.eastmoney.com/f10/F10DataApi.aspx'
-    params = {'type': 'lsjz', 'code': code, 'page':1,'per': per, 'sdate': sdate, 'edate': edate}
-    html = get_url(url, params, proxies)
-    soup = BeautifulSoup(html, 'html.parser')
+class EastMoneyStockList(EastMoney):
+    def __init__(self, market_name):
+        self._market_name = market_name
 
-    # 获取总页数
-    pattern=re.compile(r'pages:(.*),')
-    result=re.search(pattern,html).group(1)
-    pages=int(result)
+    def _get_url(self, market_name):
+        market_list = {'沪深A股':'http://quote.eastmoney.com/center/gridlist.html#hs_a_board'\
+                    ,'上证A股':'http://quote.eastmoney.com/center/gridlist.html#hs_a_board'\
+                    ,'深圳A股':'http://quote.eastmoney.com/center/gridlist.html#sz_a_board'\
+                    ,'中小板':'http://quote.eastmoney.com/center/gridlist.html#sme_board'\
+                    ,'创业板':'http://quote.eastmoney.com/center/gridlist.html#gem_board'\
+                    ,'科创板':'http://quote.eastmoney.com/center/gridlist.html#kcb_board'}
+        return market_list[market_name]
 
-    # 获取表头
-    heads = []
-    for head in soup.findAll("th"):
-        heads.append(head.contents[0])
+    def parse_page(self):
+        stock_list = []
+        url = self._get_url(self._market_name)
+        #启动浏览器
+        browser = self._init_browser() 
+        if not self._request_url(browser,url):
+            return stock_list
 
-    # 数据存取列表
-    records = []
+        while True:
+            # 等待list加载完成，不然抓取不到数据
+            wait = WebDriverWait(browser, 10)
+            wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='listview full']" )))
 
-    # 从第1页开始抓取所有页面数据
-    page=1
-    while page<=pages:
-        params = {'type': 'lsjz', 'code': code, 'page':page,'per': per, 'sdate': sdate, 'edate': edate}
-        html = get_url(url, params, proxies)
-        soup = BeautifulSoup(html, 'html.parser')
+            # 解析网页
+            soup = BeautifulSoup(browser.page_source, 'lxml')
 
-        # 获取数据
-        for row in soup.findAll("tbody")[0].findAll("tr"):
-            row_records = []
-            for record in row.findAll('td'):
-                val = record.contents
+            for tr in soup.find('div',class_='listview full').find('tbody').find_all('tr'):
+                stock = {}
+                span = tr.find('span')
+                if span.contents[0] == '-':
+                    continue
+                a = tr.findAll('a')
+                stock['code'] = a[0].contents[0]
+                stock['名称'] = a[1].contents[0]
 
-                # 处理空值
-                if val == []:
-                    row_records.append(np.nan)
-                else:
-                    row_records.append(val[0])
+                stock_list.append(stock)
+                print(stock)
 
-            # 记录数据
-            records.append(row_records)
+            # 查找目标按钮
+            try:
+                btn_next = browser.find_element_by_xpath("//a[@class='next paginate_button']")
+                btn_next.click()
+                time.sleep(random.randint(1,2)+random.random()) #随机延时?.?s  以防封IP
+            except NoSuchElementException:
+                # print(e.msg)
+                break
 
-        # 下一页
-        page=page+1
+        #关闭浏览器          
+        browser.quit()   
+        # 按照code从小到大排序
+        stock_list.sort(key=lambda k: (k.get('code', 0)))
+        return stock_list
 
-    # 数据整理到dataframe
-    np_records = np.array(records)
-    data= pd.DataFrame()
-    for col,col_name in enumerate(heads):
-        data[col_name] = np_records[:,col]
+class EastMoneyConcept(EastMoney, Process):
+    def __init__(self, code, q = Queue()):
+        # 重写写父类的__init__方法
+        super(EastMoneyConcept, self).__init__()
+        self._code = code
+        self._q = q
 
-    return data
+    def _get_url(self, code):
+        code_map = {'60': 'sh', '00':'sz', '30':'sz'}
+        code_str = ''
+        if isinstance(code, int):
+            code_str = str(code)
+        elif isinstance(code, float):
+            code_str = str(code)
+        elif isinstance(code, str):
+            code_str = code
+        for item in code_map:
+            if code_str.startswith(item):
+                return "http://quote.eastmoney.com/concept/" + code_map[item] + code_str + ".html"
+   
+    def _pre_load(self,browser):
+        try:
+            # 找到筹码分布的按钮---通过xpath
+            btn_cmfb_xpath = "//a[text()='筹码分布']"
+            # 等待响应完成
+            wait = WebDriverWait(browser, 10)
+            wait.until(EC.presence_of_element_located((By.XPATH, btn_cmfb_xpath)))
+            # 查找目标按钮
+            btn_cmfb = browser.find_element_by_xpath(btn_cmfb_xpath)
+            # 找到按钮后单击
+            btn_cmfb.click()
 
+            # 等待筹码分布的元素显示出来，不然解析数据的时候抓取不到相关数据
+            wait = WebDriverWait(browser, 10)
+            # wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='__emchatrs3_cmfb']" )))
+            # wait.until(EC.visibility_of_element_located((By.XPATH, "//div[@class='__emchatrs3_cmfb']" )))
+            wait.until(EC.text_to_be_present_in_element((By.XPATH,"//div[@class='__emchatrs3_cmfb']"),u'集中度'))
+            return True
+        except Exception as e:
+            print("%s" % (e))
+            return False
 
-# 主程序
-if __name__ == "__main__":
-    data=get_fund_data('000478',per=49,sdate='2014-01-27',edate='2019-06-06')
-    # 修改数据类型
-    data['净值日期']=pd.to_datetime(data['净值日期'],format='%Y/%m/%d')
-    data['单位净值']= data['单位净值'].astype(float)
-    data['累计净值']=data['累计净值'].astype(float)
-    data['日增长率']=data['日增长率'].str.strip('%').astype(float)
-    # 按照日期升序排序并重建索引
-    data=data.sort_values(by='净值日期',axis=0,ascending=True).reset_index(drop=True)
-    print(data)
+    def parse_page_cmfb_today(self):
+        cmfb_data = {}
+        url = self._get_url(self._code)
+        browser = self._init_browser()
+        if not self._request_url(browser,url):
+            return cmfb_data
+        if not self._pre_load(browser):
+            return cmfb_data
+        
+        cmfb_data = self._parse_page_cmfb_data(browser)
+        browser.quit()
+        return cmfb_data
 
-    # 获取净值日期、单位净值、累计净值、日增长率等数据并
-    net_value_date = data['净值日期']
-    net_asset_value = data['单位净值']
-    accumulative_net_value=data['累计净值']
-    daily_growth_rate = data['日增长率']
+    def run(self):
+        data = self.parse_page_cmfb_today()
+        self._q.put(data)
 
-    # 作基金净值图
-    fig = plt.figure()
-    #坐标轴1
-    ax1 = fig.add_subplot(111)
-    ax1.plot(net_value_date,net_asset_value)
-    ax1.plot(net_value_date,accumulative_net_value)
-    ax1.set_ylabel('净值数据')
-    ax1.set_xlabel('日期')
-    plt.legend(loc='upper left')
-    #坐标轴2
-    ax2 = ax1.twinx()
-    ax2.plot(net_value_date,daily_growth_rate,'r')
-    ax2.set_ylabel('日增长率（%）')
-    plt.legend(loc='upper right')
-    plt.title('基金净值数据')
-    plt.show()
+    # 解析网页获取筹码分布数据并返回数据
+    def _parse_page_cmfb_data(self, browser):
+        COLUMN_LIST = ('日期','获利比例','亏损比例','平均成本','90%成本','90成本集中度','70%成本','70成本集中度')
+        count = len(COLUMN_LIST)
+        data = {}
+        index = 0
+        # 解析网页
+        soup = BeautifulSoup(browser.page_source, 'lxml')
+        for span in soup.find(class_="__emchatrs3_cmfb").find_all('span'):
+            if index >= count:
+                break
+            data[COLUMN_LIST[index]] = span.contents[0]
+            index = index + 1
 
-    # 绘制分红配送信息图
-    bonus = accumulative_net_value-net_asset_value
-    plt.figure()
-    plt.plot(net_value_date,bonus)
-    plt.xlabel('日期')
-    plt.ylabel('累计净值-单位净值')
-    plt.title('基金“分红”信息')
-    plt.show()
+        print(data)   
+        return data
 
-    # 日增长率分析
-    print('日增长率缺失：',sum(np.isnan(daily_growth_rate)))
-    print('日增长率为正的天数：',sum(daily_growth_rate>0))
-    print('日增长率为负（包含0）的天数：',sum(daily_growth_rate<=0))
+    #爬虫获取数据
+    # def _get_data(self):
+    #     print("get data from " + self._url)
+    #     data_list = []
+
+    #     time.sleep(random.randint(1,5)+random.random()) #随机延时?.?s  以防封IP
+
+    #     # 这里经常出现加载超的异常，后面需要处理一下：捕获异常后，刷新浏览器
+    #     browser = self._browser
+    #     browser.get(self._url)
+
+    #     while True:
+    #         # 等待筹码分布的元素显示出来，不然解析数据的时候抓取不到相关数据
+    #         wait = WebDriverWait(browser, 10)
+    #         wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[@class='listview full']" )))
+
+    #         # 解析网页
+    #         soup = BeautifulSoup(browser.page_source, 'lxml')
+
+    #         for tr in soup.find('div',class_='listview full').find('tbody').find_all('tr'):
+    #             stock = {}
+    #             span = tr.find('span')
+    #             if span.contents[0] == '-':
+    #                 continue
+    #             a = tr.findAll('a')
+    #             stock['code'] = a[0].contents[0]
+    #             stock['名称'] = a[1].contents[0]
+
+    #             data_list.append(stock)
+    #             print(stock)
+
+    #         # 查找目标按钮
+    #         try:
+    #             btn_next = browser.find_element_by_xpath("//a[@class='next paginate_button']")
+    #             btn_next.click()
+    #             time.sleep(random.randint(1,2)+random.random()) #随机延时?.?s  以防封IP
+    #         except NoSuchElementException:
+    #             # print(e.msg)
+    #             break    
+    #     # 按照code从小到大排序
+    #     data_list.sort(key=lambda k: (k.get('code', 0)))
+    #     return data_list
+    #     # self.write_excel(Data,Record)#数据写入excel
+
+    # def _save_data(self, data_list):
+    #     excel_data = ExcelData(self._save_path)
+    #     try:
+    #         excel_data.write_excel(data_list)
+    #         print("数据已保存到文件： " + self._save_path)
+    #     except FileNotFoundError:
+    #         print(self._save_path + "----创建失败(上级目录不存在)")
+    #         date = time.strftime('%Y%m%d%H%M%S')
+    #         excel_data = ExcelData(date + ".xls")
+    #         excel_data.write_excel(data_list)
+    #         print("数据已保存到临时文件：" + os.getcwd() + '\\' + 'Data' + date + ".xls")
+    #     except PermissionError:
+    #         print(self._save_path + "----创建失败(文件已经被打开)")
+    #         date = time.strftime('%Y%m%d%H%M%S')
+    #         excel_data = ExcelData(date + ".xls")
+    #         excel_data.write_excel(data_list)
+    #         print("数据已保存到临时文件：" + os.getcwd() + '\\' + 'Data' + date + ".xls")
+        
+
+       
+    # def run(self):
+    #     data_list = self._get_data()
+    #     self._save_data(data_list)
+        
+ 
+ 
+def main():
+    date = time.strftime('%Y%m%d')
+
+    # east_stock_list = EastMoneyStockList('科创板')
+    # stock_list = east_stock_list.parse_page()
+    # print(stock_list)
+
+    concept = EastMoneyConcept('000002')
+    concept.parse_page_cmfb_today()
+    # # 获取科创板所有股票列表
+    # url = "http://quote.eastmoney.com/center/gridlist.html#sz_a_board"
+    # save_path = 'D:\\pythonData\\股票数据\\'+"深A" + 'Data'+date+'.xls'
+    # test = East(url,save_path)
+    # test.run()
+    
+    # 获取A股所有股票列表
+    # url = "http://quote.eastmoney.com/center/gridlist.html#hs_a_board"
+    # save_path = 'D:\\pythonData\\股票数据\\'+"沪深A股" + 'Data'+date+'.xls'
+    # test = East(url,save_path)
+    # test.run()   
+ 
+ 
+ 
+if __name__ == '__main__':
+    main()
+	
+	
+	
