@@ -96,12 +96,11 @@ class EastMoneyStockList(EastMoney):
         stock_list.sort(key=lambda k: (k.get('code', 0)))
         return stock_list
 
-class EastMoneyConcept(EastMoney, Process):
-    def __init__(self, code, q = Queue()):
+class EastMoneyConcept(EastMoney):
+    def __init__(self, code):
         # 重写写父类的__init__方法
         super(EastMoneyConcept, self).__init__()
         self._code = code
-        self._q = q
 
     def _get_url(self, code):
         code_map = {'60': 'sh', '00':'sz', '30':'sz'}
@@ -151,9 +150,9 @@ class EastMoneyConcept(EastMoney, Process):
         browser.quit()
         return cmfb_data
 
-    def run(self):
-        data = self.parse_page_cmfb_today()
-        self._q.put(data)
+    # def run(self):
+    #     data = self.parse_page_cmfb_today()
+    #     self._q.put(data)
 
     # 解析网页获取筹码分布数据并返回数据
     def _parse_page_cmfb_data(self, browser):

@@ -9,7 +9,7 @@
 import requests,time,os,xlwt,xlrd,random
 from CMFBData import CMFBData
 from ExcelData import ExcelData
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Pool
 from eastmoney import EastMoneyConcept
 
 
@@ -78,33 +78,54 @@ def collect_win_percent_stock(stock_list_path, save_path):
     #save_path = "D:\\pythonData\\分析数据\\WinTestData20190908.xls"
     save_data(save_path,win_list)
 
-def get_cmfb_data(stock, q):
-    pass
+def get_cmfb_data_today(stock):
+    concept = EastMoneyConcept(stock)
+    cmfb_data = concept.parse_page_cmfb_today()
+    return cmfb_data
+    # print(cmfb_data)
+    # q.put(cmfb_data)
 
 
 def get_cmfb_data_today_from_stocklist(stock_list_path, save_path):
     # 创建一个队列用来保存进程获取到的数据
-    q = Queue()
+    q= Queue(10)
+    result = []
     # 读取股票列表
     excel = ExcelData(stock_list_path)                       #定义get_data对象, sheet名称默认Sheet1
     # stock_list = excel.read_excel()
+    # stock_list = [{'code':'000002'},{'code':'000001'},{'code':'000004'}]
     stock_list = ['000002','000001','000004']
 
-    # 保存进程
-    Process_list = []
-    # 创建并启动进程
+    pool = Pool(4)
+    # pool.map(get_cmfb_data_today, stock_list)
     for stock in stock_list:
-        # p = EastMoneyConcept(stock['code'],q)
-        p = EastMoneyConcept(stock,q)
-        p.start()
-        Process_list.append(p)
-    
-    # 让主进程等待子进程执行完成
-    for i in Process_list:
-        i.join()
+        data = pool.apply_async(get_cmfb_data_today,args=(stock,))
+        # result.append(data)
 
-    while not q.empty():
-        print(q.get())
+    # print(cmfb_list)
+    
+    
+    pool.close()
+    pool.join()
+
+    # for res in result:
+    #     print(res.get())
+    # # 保存进程
+    # Process_list = []
+    # # 创建并启动进程
+    # for stock in stock_list:
+    #     # p = EastMoneyConcept(stock['code'],q)
+    #     p = EastMoneyConcept(stock,q)
+    #     p.start()
+    #     Process_list.append(p)
+    
+    # # 让主进程等待子进程执行完成
+    # for i in Process_list:
+    #     i.join()
+
+    print("process finish")
+    # while not q.empty():
+    #     print(q.get())
 
 def main():
     # date = time.strftime('%Y%m%d')
