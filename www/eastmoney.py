@@ -19,6 +19,7 @@ from multiprocessing import Process, Queue
 from operator import itemgetter
 from itertools import groupby
 import pyautogui
+import shutil
 
 class EastMoney(): 
     def _init_browser(self):
@@ -185,18 +186,36 @@ class EastMoneyConcept(EastMoney):
             print("%s" % (e))
             return False
 
-    def parse_page_cmfb_today(self):
+    def _get_today(self, browser, code):
         cmfb_data = {}
-        url = self._get_url(self._code)
-        browser = self._init_browser()
+        url = self._code2url(code)
         if not self._request_url(browser,url):
             return cmfb_data
         if not self._pre_load(browser):
             return cmfb_data
         
         cmfb_data = self._parse_page_cmfb_data(browser)
-        browser.quit()
         return cmfb_data
+
+    def get_today_by_code(self, code, root_path):
+        browser = self._init_browser()
+        data = self._get_today(browser, code)
+        save_path = root_path + code + '.xls'
+        self._append_data(save_path,data)
+        browser.close()
+        browser.quit()
+
+    def get_today_by_stock_list_path(self, stock_list_path, root_path):
+        browser = self._init_browser()
+        excel = ExcelData(stock_list_path)
+        stock_list = excel.read_excel()
+        for stock in stock_list:
+            code = stock['code']
+            save_path = root_path + code + '.xls'
+            data = self._get_today(browser,code)
+            self._append_data(save_path,data)
+        browser.quit()
+    
 
     # 解析网页获取筹码分布数据并返回数据
     def _parse_page_cmfb_data(self, browser):
@@ -212,6 +231,37 @@ class EastMoneyConcept(EastMoney):
                 break
             data[COLUMN_LIST[index]] = span.contents[0]
             index = index + 1
+        
+        #获取基本信息'开盘','收盘','最高','最低','涨跌幅','涨跌额','成交量','成交额','振幅','换手率'
+        base_info = soup.find(id="quote-fields")
+        quote_open_custom = base_info.find(id="quote-open-custom").contents[0] #开盘
+        data['开盘'] = quote_open_custom
+        quote_close_custom = base_info.find(id="quote-close-custom").contents[0] #最新或收盘
+        data['收盘'] = quote_close_custom
+        quote_high_custom = base_info.find(id="quote-high-custom").contents[0] #最高
+        data['最高'] = quote_high_custom
+        quote_low_custom = base_info.find(id="quote-low-custom").contents[0] #最低
+        data['最低'] = quote_low_custom
+
+
+        quote_c = base_info.find(id="quote-pc").contents[0] #昨收
+        quote_close_custom_float = float(quote_close_custom) 
+        quote_c_float = float(quote_c)
+        quote_change_rate = format(((quote_close_custom_float - quote_c_float)/quote_c_float)*100,'.2f')+'%' #涨跌幅
+        data['涨跌幅'] = quote_change_rate
+        quote_change_price = format((quote_close_custom_float - quote_c_float), '.2f') #涨跌额
+        data['涨跌额'] = quote_change_price
+
+        quote_volume_custom = base_info.find(id="quote-volume-custom").contents[0] #成交量
+        data['成交量'] = quote_volume_custom
+        quote_amount_custom = base_info.find(id="quote-amount-custom").contents[0] #成交额
+        data['成交额'] = quote_amount_custom
+        quote_amplitude_custom = base_info.find(id="quote-amplitude-custom").contents[0] #振幅
+        data['振幅'] = quote_amplitude_custom
+        quote_turnoverRate_custom = base_info.find(id="quote-turnoverRate-custom").contents[0] #换手率
+        data['换手率'] = quote_turnoverRate_custom
+
+        # print(quote_close_custom.contents[0])
         # print('_parse_page_cmfb_data %d second'% (time.time()-start_time))
         # print(data)   
         return data
@@ -323,18 +373,7 @@ class EastMoneyConcept(EastMoney):
         self._save_data(code, save_path, data_list)
         browser.close()
         browser.quit()
-
-    def get_history_by_code_test(self, code, root_path):
-        # browser = self._init_browser_forground()
-        # data_list = self._get_history(browser,code)
-        data_list = [{'1':'tst', 'asdf':'sdf'}]
-        save_path = root_path + code + '.xls'
-        # excel = ExcelData(save_path)
-        # excel.write_excel(data_list)
-        self._save_data(code, save_path, data_list)
-        # browser.close()
-        # browser.quit()    
-
+    
     def get_history_by_stock_list_path(self, stock_list_path, root_path):
         browser = self._init_browser_forground()
         excel = ExcelData(stock_list_path)
@@ -360,6 +399,15 @@ class EastMoneyConcept(EastMoney):
         browser.close()
         browser.quit()
         
+    def _append_data(self, save_path, data):
+        excel = ExcelData(save_path)
+        try:
+            excel.write_excel_xls_append(data)
+            print("数据已追加到文件： " + save_path)
+            return True
+        except Exception as e:
+            print("追加文件异常(其他原因): %s" % e)
+            return False
 
     def _save_data(self, code, save_path, data_list):
         excel_data = ExcelData(save_path)
@@ -385,13 +433,6 @@ class EastMoneyConcept(EastMoney):
         except Exception as e:
             print("保存文件异常(其他原因): %s" % e)
             return False
-        
-
-       
-    # def run(self):
-    #     data_list = self._get_data()
-    #     self._save_data(data_list)
-        
 
 def get_stock_list():
     date = time.strftime('%Y%m%d')
@@ -399,19 +440,36 @@ def get_stock_list():
     save_path = 'D:\\pythonData\\股票列表\\'+ '沪深A股'+ 'Data' + date+'.xls'
     east.get_stock_list('沪深A股',save_path)
  
+def get_cmfb_today_by_code():
+    date = time.strftime('%Y%m%d')
+    east = EastMoneyConcept()
+    east.get_today_by_code('000906', 'D:\\pythonData\\test\\')
+
+def get_cmfb_today_by_stock_list_path(stock_list_path, root_path):
+    date = time.strftime('%Y%m%d%H%M%S')
+    bak_root_path = root_path[:-1] + date
+    print("备份开始 :" + bak_root_path)
+    shutil.copytree(root_path, bak_root_path)
+    print("备份结束 :" + bak_root_path)
+    east = EastMoneyConcept()
+    east.get_today_by_stock_list_path(stock_list_path, root_path)
+
 def main():
     date = time.strftime('%Y%m%d')
     concept = EastMoneyConcept()
+    # concept.parse_page_cmfb_today('000002')
     # concept.get_history_by_code('000002','D:\\pythonData\\股票数据\\')
-    concept.get_history_by_stock_list_path('D:\\pythonData\\股票列表\\leak.errorlist20190916135724.xls','D:\\pythonData\\股票数据\\')
+    # concept.get_history_by_stock_list_path('D:\\pythonData\\股票列表\\leak.errorlist20190916135724.xls','D:\\pythonData\\股票数据\\')
 
 
 
  
  
 if __name__ == '__main__':
-    main()
+    # main()
     # get_stock_list()
+    # get_cmfb_today_by_code()
+    get_cmfb_today_by_stock_list_path('D:\\pythonData\\股票列表\\沪深A股Data20190916.xls', 'D:\\pythonData\\股票数据\\')
 	
 	
 	

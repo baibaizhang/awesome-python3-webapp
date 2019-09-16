@@ -1,5 +1,7 @@
 import xlrd                                                        #导入xlrd模块
 import xlwt
+from xlutils.copy import copy
+import pandas as pd
 
 class ExcelData(object):
     def __init__(self,data_path,sheetname='Sheet1'):
@@ -53,8 +55,47 @@ class ExcelData(object):
  
         wbk.save(self.data_path[:-3]+'xls')#保存文件
 
+    def write_excel_xls_append(self, data):
+        workbook = xlrd.open_workbook(self.data_path)  # 打开工作簿
+        worksheet = workbook.sheet_by_name(self.sheetname)  # 获取工作簿中所有表格中的的第一个表格
+
+        keys = worksheet.row_values(0)                       # 第一行作为key值
+        cols = worksheet.col_values(0) # 获取第一列内容
+
+        rows = worksheet.nrows  # 获取表格中已存在的数据的行数
+        if (rows < 2):
+            print("excle内数据行数小于2")
+            return 
+        new_workbook = copy(workbook)  # 将xlrd对象拷贝转化为xlwt对象
+        new_worksheet = new_workbook.get_sheet(0)  # 获取转化后工作簿中的第一个表格
+        # new_worksheet = new_workbook.sheet_by_name(self.sheetname)  # 获取转化后工作簿中的第一个表格
+
+        # 如果当天日期的值重复插入，用最新的值替换前面的值
+        if (cols[-1] == data['日期']):
+            x = rows - 1
+        else:
+            x = rows
+
+        y = 0
+        for key in list(keys):  # 找到所有键值对应的数据
+            new_worksheet.write(x, y, data[key])  # 存入
+            y = y + 1
+        # for i in range(0, index):
+        #     for j in range(0, len(value[i])):
+        #         new_worksheet.write(i+rows_old, j, value[i][j])  # 追加写入数据，注意是从i+rows_old行开始写入
+        new_workbook.save(self.data_path)  # 保存工作簿
+        # print("xls格式表格【追加】写入数据成功！")
+
+    def get_column_data(self, column_name):
+        workbook = xlrd.open_workbook(self.data_path)  # 打开工作簿
+        sheets = workbook.sheet_names()  # 获取工作簿中的所有表格
+        worksheet = workbook.sheet_by_name(sheets[0])  # 获取工作簿中所有表格中的的第一个表格
+        cols = worksheet.col_values(0) # 获取第一列内容
+        print(cols)
+
 
 if __name__ == '__main__':
-    data_path = "D:\\pythonData\\股票数据\\科创板Data20190909.xls"  #文件的绝对路径
+    data_path = "D:\\pythonData\\000001.xls"  #文件的绝对路径
     get_data = ExcelData(data_path)                       #定义get_data对象, sheet名称默认Sheet1
-    print(get_data.read_excel())
+    # print(get_data.read_excel())
+    get_data.get_column_data('日期')
