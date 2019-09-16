@@ -213,7 +213,7 @@ class EastMoneyConcept(EastMoney):
             data[COLUMN_LIST[index]] = span.contents[0]
             index = index + 1
         # print('_parse_page_cmfb_data %d second'% (time.time()-start_time))
-        print(data)   
+        # print(data)   
         return data
 
     def _parse_page_stock_info_history(self, browser):
@@ -278,8 +278,10 @@ class EastMoneyConcept(EastMoney):
             START_Y = 485
             MOVE_X = 8
         elif screenWidth == 1920:
-            START_X = 544    
-            END_X = 1350
+            START_X = 627 
+            END_X = 1275
+            # START_X = 544   
+            # END_X = 1350
             START_Y = 666
             MOVE_X = 10
         else:
@@ -321,6 +323,17 @@ class EastMoneyConcept(EastMoney):
         self._save_data(code, save_path, data_list)
         browser.close()
         browser.quit()
+
+    def get_history_by_code_test(self, code, root_path):
+        # browser = self._init_browser_forground()
+        # data_list = self._get_history(browser,code)
+        data_list = [{'1':'tst', 'asdf':'sdf'}]
+        save_path = root_path + code + '.xls'
+        # excel = ExcelData(save_path)
+        # excel.write_excel(data_list)
+        self._save_data(code, save_path, data_list)
+        # browser.close()
+        # browser.quit()    
 
     def get_history_by_stock_list_path(self, stock_list_path, root_path):
         browser = self._init_browser_forground()
@@ -369,7 +382,8 @@ class EastMoneyConcept(EastMoney):
             excel_data.write_excel(data_list)
             print("数据已保存到临时文件：" + os.getcwd() + '\\' + code + '-'+ date + ".xls")
             return True
-        except Exception:
+        except Exception as e:
+            print("保存文件异常(其他原因): %s" % e)
             return False
         
 
@@ -387,33 +401,17 @@ def get_stock_list():
  
 def main():
     date = time.strftime('%Y%m%d')
-
-    # east_stock_list = EastMoneyStockList('科创板')
-    # stock_list = east_stock_list.parse_page()
-    # print(stock_list)
-
     concept = EastMoneyConcept()
-    # concept.get_history_by_code('000002')
     # concept.get_history_by_code('000002','D:\\pythonData\\股票数据\\')
-    concept.get_history_by_stock_list_path('D:\\pythonData\\股票列表\\沪深A股Data20190908.xls','D:\\pythonData\\股票数据\\')
-    # concept.parse_page_cmfb_today()
-    # # 获取科创板所有股票列表
-    # url = "http://quote.eastmoney.com/center/gridlist.html#sz_a_board"
-    # save_path = 'D:\\pythonData\\股票数据\\'+"深A" + 'Data'+date+'.xls'
-    # test = East(url,save_path)
-    # test.run()
-    
-    # 获取A股所有股票列表
-    # url = "http://quote.eastmoney.com/center/gridlist.html#hs_a_board"
-    # save_path = 'D:\\pythonData\\股票数据\\'+"沪深A股" + 'Data'+date+'.xls'
-    # test = East(url,save_path)
-    # test.run()   
- 
+    concept.get_history_by_stock_list_path('D:\\pythonData\\股票列表\\leak.errorlist20190916135724.xls','D:\\pythonData\\股票数据\\')
+
+
+
  
  
 if __name__ == '__main__':
-    # main()
-    get_stock_list()
+    main()
+    # get_stock_list()
 	
 	
 	
