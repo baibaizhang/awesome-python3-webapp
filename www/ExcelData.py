@@ -34,6 +34,23 @@ class ExcelData(object):
             #print(type(L))
             return L
 
+    def read_excel_last_row(self):
+        self.data = xlrd.open_workbook(self.data_path)             # 打开excel表格
+        self.table = self.data.sheet_by_name(self.sheetname)       # 切换到相应sheet
+        self.keys = self.table.row_values(0)                       # 第一行作为key值
+        self.rowNum = self.table.nrows                             # 获取表格行数
+        self.colNum = self.table.ncols                             # 获取表格列数
+
+        if self.rowNum<2:
+            print("excle内数据行数小于2")
+        else: 
+            i = self.rowNum - 1                                              #列表L存放取出的数据
+            sheet_data = {}                                    #定义一个字典用来存放对应数据
+            for j in range(self.colNum):                       #j对应列值
+                sheet_data[self.keys[j]] = self.table.row_values(i)[j]    #把第i行第j列的值取出赋给第j列的键值，构成字典                             #一行值取完之后（一个字典），追加到L列表中
+            #print(type(L))
+            return sheet_data
+
     def write_excel(self, data):
         lis=data
         listkeys = lis[0].keys()  # 找到所有的键值
@@ -50,6 +67,10 @@ class ExcelData(object):
             y = 0
             for key in list(listkeys):  # 找到所有键值对应的数据
                 sheet.write(x, y, one_dict[key])  # 存入
+                # if (key == 'url'):
+                #     sheet.write(x, y, ('=HYPERLINK("%s","%s")' % one_dict[key], one_dict[key]))  # 存入
+                # else:
+                #     sheet.write(x, y, one_dict[key])  # 存入
                 y = y + 1
             x = x + 1
  

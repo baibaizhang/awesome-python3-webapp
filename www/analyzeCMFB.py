@@ -16,7 +16,7 @@ from eastmoney import EastMoneyConcept
 
 
 def get_url(code):
-    code_map = {'60': 'sh', '00':'sz', '30':'sz'}
+    code_map = {'60': 'sh', '00':'sz', '30':'sz', '688':'sh'}
     code_str = ''
     if isinstance(code, int):
         code_str = str(code)

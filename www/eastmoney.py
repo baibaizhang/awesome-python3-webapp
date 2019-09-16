@@ -209,11 +209,18 @@ class EastMoneyConcept(EastMoney):
         browser = self._init_browser()
         excel = ExcelData(stock_list_path)
         stock_list = excel.read_excel()
+        count = len(stock_list)
+        index = 0
+        start_time = time.time()
         for stock in stock_list:
             code = stock['code']
             save_path = root_path + code + '.xls'
             data = self._get_today(browser,code)
             self._append_data(save_path,data)
+            index += 1
+            progress = format((index/count)*100, '.2f')+'%'
+            print(progress)
+        print('get_today_by_stock_list_path %d second'% (time.time()-start_time))
         browser.quit()
     
 
@@ -244,22 +251,27 @@ class EastMoneyConcept(EastMoney):
         data['最低'] = quote_low_custom
 
 
-        quote_c = base_info.find(id="quote-pc").contents[0] #昨收
-        quote_close_custom_float = float(quote_close_custom) 
-        quote_c_float = float(quote_c)
-        quote_change_rate = format(((quote_close_custom_float - quote_c_float)/quote_c_float)*100,'.2f')+'%' #涨跌幅
-        data['涨跌幅'] = quote_change_rate
-        quote_change_price = format((quote_close_custom_float - quote_c_float), '.2f') #涨跌额
-        data['涨跌额'] = quote_change_price
+        try:
+            quote_c = base_info.find(id="quote-pc").contents[0] #昨收
+            quote_close_custom_float = float(quote_close_custom) 
+            quote_c_float = float(quote_c)
+            quote_change_rate = format(((quote_close_custom_float - quote_c_float)/quote_c_float)*100,'.2f')+'%' #涨跌幅
+            data['涨跌幅'] = quote_change_rate
+            quote_change_price = format((quote_close_custom_float - quote_c_float), '.2f') #涨跌额
+            data['涨跌额'] = quote_change_price
 
-        quote_volume_custom = base_info.find(id="quote-volume-custom").contents[0] #成交量
-        data['成交量'] = quote_volume_custom
-        quote_amount_custom = base_info.find(id="quote-amount-custom").contents[0] #成交额
-        data['成交额'] = quote_amount_custom
-        quote_amplitude_custom = base_info.find(id="quote-amplitude-custom").contents[0] #振幅
-        data['振幅'] = quote_amplitude_custom
-        quote_turnoverRate_custom = base_info.find(id="quote-turnoverRate-custom").contents[0] #换手率
-        data['换手率'] = quote_turnoverRate_custom
+            quote_volume_custom = base_info.find(id="quote-volume-custom").contents[0] #成交量
+            data['成交量'] = quote_volume_custom
+            quote_amount_custom = base_info.find(id="quote-amount-custom").contents[0] #成交额
+            data['成交额'] = quote_amount_custom
+            quote_amplitude_custom = base_info.find(id="quote-amplitude-custom").contents[0] #振幅
+            data['振幅'] = quote_amplitude_custom
+            quote_turnoverRate_custom = base_info.find(id="quote-turnoverRate-custom").contents[0] #换手率
+            data['换手率'] = quote_turnoverRate_custom
+        except Exception as e:
+            print(e)
+            data = {}
+            return data
 
         # print(quote_close_custom.contents[0])
         # print('_parse_page_cmfb_data %d second'% (time.time()-start_time))
@@ -447,7 +459,7 @@ def get_cmfb_today_by_code():
 
 def get_cmfb_today_by_stock_list_path(stock_list_path, root_path):
     date = time.strftime('%Y%m%d%H%M%S')
-    bak_root_path = root_path[:-1] + date
+    bak_root_path = root_path[:-1] + '-bak-'+date
     print("备份开始 :" + bak_root_path)
     shutil.copytree(root_path, bak_root_path)
     print("备份结束 :" + bak_root_path)
@@ -469,7 +481,7 @@ if __name__ == '__main__':
     # main()
     # get_stock_list()
     # get_cmfb_today_by_code()
-    get_cmfb_today_by_stock_list_path('D:\\pythonData\\股票列表\\沪深A股Data20190916.xls', 'D:\\pythonData\\股票数据\\')
+    get_cmfb_today_by_stock_list_path('D:\\pythonData\\股票列表\\沪AData20190908.xls', 'D:\\pythonData\\股票数据\\')
 	
 	
 	
