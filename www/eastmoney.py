@@ -54,9 +54,6 @@ class EastMoney():
         return [next(v) for _, v in groupby(items, key=key)]
 
 class EastMoneyStockList(EastMoney):
-    def __init__(self, market_name):
-        self._market_name = market_name
-
     def _get_url(self, market_name):
         market_list = {'沪深A股':'http://quote.eastmoney.com/center/gridlist.html#hs_a_board'\
                     ,'上证A股':'http://quote.eastmoney.com/center/gridlist.html#hs_a_board'\
@@ -66,9 +63,9 @@ class EastMoneyStockList(EastMoney):
                     ,'科创板':'http://quote.eastmoney.com/center/gridlist.html#kcb_board'}
         return market_list[market_name]
 
-    def parse_page(self):
+    def parse_page(self, market_name):
         stock_list = []
-        url = self._get_url(self._market_name)
+        url = self._get_url(market_name)
         #启动浏览器
         browser = self._init_browser() 
         if not self._request_url(browser,url):
@@ -92,7 +89,7 @@ class EastMoneyStockList(EastMoney):
                 stock['名称'] = a[1].contents[0]
 
                 stock_list.append(stock)
-                print(stock)
+                # print(stock)
 
             # 查找目标按钮
             try:
@@ -108,6 +105,34 @@ class EastMoneyStockList(EastMoney):
         # 按照code从小到大排序
         stock_list.sort(key=lambda k: (k.get('code', 0)))
         return stock_list
+
+    def get_stock_list(self, market_name, save_path):
+        data_list = self.parse_page(market_name)
+        self._save_data(save_path,data_list)
+    
+    def _save_data(self,save_path, data_list):
+        excel_data = ExcelData(save_path)
+       
+        try:
+            excel_data.write_excel(data_list)
+            print("数据已保存到文件： " + save_path)
+            return True
+        except FileNotFoundError:
+            print(save_path + "----创建失败(上级目录不存在)")
+            date = time.strftime('%Y%m%d%H%M%S')
+            excel_data = ExcelData('Data'+ date + ".xls")
+            excel_data.write_excel(data_list)
+            print("数据已保存到临时文件：" + os.getcwd() + '\\' + 'Data'+ date + ".xls")
+            return True
+        except PermissionError:
+            print(save_path + "----创建失败(文件已经被打开)")
+            date = time.strftime('%Y%m%d%H%M%S')
+            excel_data = ExcelData('Data' + date + ".xls")
+            excel_data.write_excel(data_list)
+            print("数据已保存到临时文件：" + os.getcwd() + '\\' +'Data'+ date + ".xls")
+            return True
+        except Exception:
+            return False
 
 class EastMoneyConcept(EastMoney):
     def _init_browser_forground(self):
@@ -353,7 +378,12 @@ class EastMoneyConcept(EastMoney):
     #     data_list = self._get_data()
     #     self._save_data(data_list)
         
- 
+
+def get_stock_list():
+    date = time.strftime('%Y%m%d')
+    east = EastMoneyStockList()
+    save_path = 'D:\\pythonData\\股票列表\\'+ '沪深A股'+ 'Data' + date+'.xls'
+    east.get_stock_list('沪深A股',save_path)
  
 def main():
     date = time.strftime('%Y%m%d')
@@ -382,7 +412,8 @@ def main():
  
  
 if __name__ == '__main__':
-    main()
+    # main()
+    get_stock_list()
 	
 	
 	
