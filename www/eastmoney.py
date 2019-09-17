@@ -482,7 +482,7 @@ def main():
  
  
 if __name__ == '__main__':
-    # main()
+    main()
     # get_stock_list()
     # get_cmfb_today_by_code()	
 	
