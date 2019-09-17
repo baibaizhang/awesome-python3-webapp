@@ -470,31 +470,20 @@ def get_cmfb_today_by_code():
     east = EastMoneyConcept()
     east.get_today_by_code('000906', 'D:\\pythonData\\test\\')
 
-def get_cmfb_today_by_stock_list_path(stock_list_path, root_path):
-    date = time.strftime('%Y%m%d%H%M%S')
-    bak_root_path = root_path[:-1] + '-bak-'+date
-    print("备份开始 :" + bak_root_path)
-    shutil.copytree(root_path, bak_root_path)
-    print("备份结束 :" + bak_root_path)
-    east = EastMoneyConcept()
-    east.get_today_by_stock_list_path(stock_list_path, root_path)
 
 def main():
     date = time.strftime('%Y%m%d')
     concept = EastMoneyConcept()
     # concept.parse_page_cmfb_today('000002')
-    # concept.get_history_by_code('000002','D:\\pythonData\\股票数据\\')
-    # concept.get_history_by_stock_list_path('D:\\pythonData\\股票列表\\leak.errorlist20190916135724.xls','D:\\pythonData\\股票数据\\')
-
+    # concept.get_history_by_code('000002','D:\\OneDrive\\stock\\data\\')
+  
 
 
  
  
 if __name__ == '__main__':
     # main()
-    get_stock_list()
-    # get_cmfb_today_by_code()
-    # get_cmfb_today_by_stock_list_path('D:\\pythonData\\股票列表\\沪AData20190908.xls', 'D:\\pythonData\\股票数据\\')
-	
+    # get_stock_list()
+    # get_cmfb_today_by_code()	
 	
 	
