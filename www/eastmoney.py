@@ -56,15 +56,15 @@ class EastMoney():
 
 class EastMoneyStockList(EastMoney):
     def _get_url(self, market_name):
-        market_list = {'沪深A股':'http://quote.eastmoney.com/center/gridlist.html#hs_a_board'\
-                    ,'上证A股':'http://quote.eastmoney.com/center/gridlist.html#hs_a_board'\
-                    ,'深圳A股':'http://quote.eastmoney.com/center/gridlist.html#sz_a_board'\
-                    ,'中小板':'http://quote.eastmoney.com/center/gridlist.html#sme_board'\
-                    ,'创业板':'http://quote.eastmoney.com/center/gridlist.html#gem_board'\
-                    ,'科创板':'http://quote.eastmoney.com/center/gridlist.html#kcb_board'}
+        market_list = {'hs_a_board':'http://quote.eastmoney.com/center/gridlist.html#hs_a_board'\
+                    ,'sh_a_board':'http://quote.eastmoney.com/center/gridlist.html#sh_a_board'\
+                    ,'sz_a_board':'http://quote.eastmoney.com/center/gridlist.html#sz_a_board'\
+                    ,'sme_board':'http://quote.eastmoney.com/center/gridlist.html#sme_board'\
+                    ,'gem_board':'http://quote.eastmoney.com/center/gridlist.html#gem_board'\
+                    ,'kcb_board':'http://quote.eastmoney.com/center/gridlist.html#kcb_board'}
         return market_list[market_name]
 
-    def parse_page(self, market_name):
+    def parse_page(self, market_name, except_code_list = []):
         stock_list = []
         url = self._get_url(market_name)
         #启动浏览器
@@ -86,6 +86,14 @@ class EastMoneyStockList(EastMoney):
                 if span.contents[0] == '-':
                     continue
                 a = tr.findAll('a')
+                is_except = False
+                for except_code in except_code_list:
+                    if a[0].contents[0].startswith(except_code):
+                        is_except = True
+                        break
+                if is_except:
+                    continue
+
                 stock['code'] = a[0].contents[0]
                 stock['名称'] = a[1].contents[0]
 
@@ -107,11 +115,11 @@ class EastMoneyStockList(EastMoney):
         stock_list.sort(key=lambda k: (k.get('code', 0)))
         return stock_list
 
-    def get_stock_list(self, market_name, save_path):
-        data_list = self.parse_page(market_name)
-        self._save_data(save_path,data_list)
+    def get_stock_list(self, market_name, save_path, except_code_list = []):
+        data_list = self.parse_page(market_name, except_code_list)
+        self._save_data(market_name, save_path,data_list)
     
-    def _save_data(self,save_path, data_list):
+    def _save_data(self,market_name, save_path, data_list):
         excel_data = ExcelData(save_path)
        
         try:
@@ -121,18 +129,19 @@ class EastMoneyStockList(EastMoney):
         except FileNotFoundError:
             print(save_path + "----创建失败(上级目录不存在)")
             date = time.strftime('%Y%m%d%H%M%S')
-            excel_data = ExcelData('Data'+ date + ".xls")
+            excel_data = ExcelData(market_name + date + ".xls")
             excel_data.write_excel(data_list)
-            print("数据已保存到临时文件：" + os.getcwd() + '\\' + 'Data'+ date + ".xls")
+            print("数据已保存到临时文件：" + os.getcwd() + '\\' + market_name+ date + ".xls")
             return True
         except PermissionError:
             print(save_path + "----创建失败(文件已经被打开)")
             date = time.strftime('%Y%m%d%H%M%S')
-            excel_data = ExcelData('Data' + date + ".xls")
+            excel_data = ExcelData(market_name + date + ".xls")
             excel_data.write_excel(data_list)
-            print("数据已保存到临时文件：" + os.getcwd() + '\\' +'Data'+ date + ".xls")
+            print("数据已保存到临时文件：" + os.getcwd() + '\\' + market_name+ date + ".xls")
             return True
-        except Exception:
+        except Exception as e:
+            print(e)
             return False
 
 class EastMoneyConcept(EastMoney):
@@ -447,10 +456,14 @@ class EastMoneyConcept(EastMoney):
             return False
 
 def get_stock_list():
-    date = time.strftime('%Y%m%d')
+    date = time.strftime('%Y%m%d%H%M%S')
     east = EastMoneyStockList()
-    save_path = 'D:\\pythonData\\股票列表\\'+ '沪深A股'+ 'Data' + date+'.xls'
-    east.get_stock_list('沪深A股',save_path)
+    save_path = 'D:\\OneDrive\\stock\\list\\'+ 'hs_a_board'+ '.xls'
+    if (os.path.exists(save_path)):
+        bak_path = save_path[:-4]+ date + '.xls'
+        shutil.copy(save_path, bak_path)
+    east.get_stock_list('hs_a_board',save_path, except_code_list=['300','688']) #去除300，688开头的
+    east.get_stock_list('hs_a_board',save_path)
  
 def get_cmfb_today_by_code():
     date = time.strftime('%Y%m%d')
@@ -479,9 +492,9 @@ def main():
  
 if __name__ == '__main__':
     # main()
-    # get_stock_list()
+    get_stock_list()
     # get_cmfb_today_by_code()
-    get_cmfb_today_by_stock_list_path('D:\\pythonData\\股票列表\\沪AData20190908.xls', 'D:\\pythonData\\股票数据\\')
+    # get_cmfb_today_by_stock_list_path('D:\\pythonData\\股票列表\\沪AData20190908.xls', 'D:\\pythonData\\股票数据\\')
 	
 	
 	
