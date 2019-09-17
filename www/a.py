@@ -55,14 +55,18 @@ def check_cmfb_exist_by_date(stock_list_path, stock_data_root_path, date, leak_p
     index = 0
     for stock in stock_list:
         stock_data_path = stock_data_root_path + stock['code'] + '.xls'
-        excel_cmfb = ExcelData(stock_data_path)
-        data = excel_cmfb.read_excel_last_row()
-        if data['日期'] != date:
-            leak_list.append(stock)
-            
-        index += 1
-        progress = format((index/count)*100, '.2f')+'%'
-        print(progress)
+        try:
+            excel_cmfb = ExcelData(stock_data_path)
+            data = excel_cmfb.read_excel_last_row()
+        
+            if data['日期'] != date:
+                leak_list.append(stock)
+                
+            index += 1
+            progress = format((index/count)*100, '.2f')+'%'
+            print(progress)
+        except:
+            continue
     leak_list = distinct(leak_list, 'code')
     excel_write = ExcelData(leak_path)
     excel_write.write_excel(leak_list)
@@ -95,13 +99,13 @@ def analyze_cmfb(stock_list_path, stock_data_root_path, save_path):
 def main():
     date = time.strftime('%Y-%m-%d')
     # check('D:\\pythonData\\股票列表\\沪深A股Data20190916.xls', 'D:\\pythonData\\股票数据\\', 'D:\\pythonData\\股票列表\\leak.xls')
-    # check_cmfb_exist_by_date('D:\\pythonData\\股票列表\\沪深A股Data20190916.xls', \
+    check_cmfb_exist_by_date('D:\\OneDrive\\stock\\list\\hs_a_board.xls', \
+                             'D:\\OneDrive\\stock\\data\\', \
+                             date, \
+                             'D:\\leak_by_date'+ date + '.xls')
+    # analyze_cmfb('D:\\pythonData\\股票列表\\沪深A股Data20190916.xls', \
     #                          'D:\\pythonData\\股票数据\\', \
-    #                          date, \
-    #                          'D:\\pythonData\\股票列表\\leak_by_date'+ date + '.xls')
-    analyze_cmfb('D:\\pythonData\\股票列表\\沪深A股Data20190916.xls', \
-                             'D:\\pythonData\\股票数据\\', \
-                             'D:\\pythonData\\股票分析\\沪深A股'+ date + '.xls')
+    #                          'D:\\pythonData\\股票分析\\沪深A股'+ date + '.xls')
 
 
     

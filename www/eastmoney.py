@@ -349,10 +349,10 @@ class EastMoneyConcept(EastMoney):
             START_Y = 485
             MOVE_X = 8
         elif screenWidth == 1920:
-            START_X = 627 
-            END_X = 1275
-            # START_X = 544   
-            # END_X = 1350
+            # START_X = 627 
+            # END_X = 1275
+            START_X = 544   
+            END_X = 1350
             START_Y = 666
             MOVE_X = 10
         else:
@@ -468,14 +468,19 @@ def get_stock_list():
 def get_cmfb_today_by_code():
     date = time.strftime('%Y%m%d')
     east = EastMoneyConcept()
-    east.get_today_by_code('000906', 'D:\\pythonData\\test\\')
+    east.get_today_by_code('000782', 'D:\\OneDrive\\stock\\data\\')
+
+# def get_history_by_code():
+#     date = time.strftime('%Y%m%d')
+#     east = EastMoneyConcept()
+#     east.get_today_by_code('000782', 'D:\\OneDrive\\stock\\data\\')
 
 
 def main():
     date = time.strftime('%Y%m%d')
     concept = EastMoneyConcept()
     # concept.parse_page_cmfb_today('000002')
-    # concept.get_history_by_code('000002','D:\\OneDrive\\stock\\data\\')
+    concept.get_history_by_code('000782','D:\\OneDrive\\stock\\data\\')
   
 
 
@@ -485,5 +490,6 @@ if __name__ == '__main__':
     main()
     # get_stock_list()
     # get_cmfb_today_by_code()	
+    # get_history_by_code()
 	
 	
