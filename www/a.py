@@ -99,13 +99,13 @@ def analyze_cmfb(stock_list_path, stock_data_root_path, save_path):
 def main():
     date = time.strftime('%Y-%m-%d')
     # check('D:\\pythonData\\股票列表\\沪深A股Data20190916.xls', 'D:\\pythonData\\股票数据\\', 'D:\\pythonData\\股票列表\\leak.xls')
-    check_cmfb_exist_by_date('D:\\OneDrive\\stock\\list\\hs_a_board.xls', \
+    # check_cmfb_exist_by_date('D:\\OneDrive\\stock\\list\\hs_a_board.xls', \
+    #                          'D:\\OneDrive\\stock\\data\\', \
+    #                          date, \
+    #                          'D:\\leak_by_date'+ date + '.xls')
+    analyze_cmfb('D:\\OneDrive\\stock\\list\\hs_a_board.xls', \
                              'D:\\OneDrive\\stock\\data\\', \
-                             date, \
-                             'D:\\leak_by_date'+ date + '.xls')
-    # analyze_cmfb('D:\\pythonData\\股票列表\\沪深A股Data20190916.xls', \
-    #                          'D:\\pythonData\\股票数据\\', \
-    #                          'D:\\pythonData\\股票分析\\沪深A股'+ date + '.xls')
+                             'D:\\OneDrive\\stock\\analysis\\hs_a_board'+ date + '.xls')
 
 
     
