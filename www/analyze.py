@@ -94,18 +94,19 @@ def analyze_cmfb(stock_list_path, stock_data_root_path, save_path):
     analyze_data_list = distinct(analyze_data_list, 'code')
     excel_write = ExcelData(save_path)
     excel_write.write_excel(analyze_data_list)
+    print('文件以保存到：' + save_path)
 
 
 def main():
     date = time.strftime('%Y-%m-%d')
-    # check('D:\\pythonData\\股票列表\\沪深A股Data20190916.xls', 'D:\\pythonData\\股票数据\\', 'D:\\pythonData\\股票列表\\leak.xls')
-    # check_cmfb_exist_by_date('D:\\OneDrive\\stock\\list\\hs_a_board.xls', \
-    #                          'D:\\OneDrive\\stock\\data\\', \
+    # check('D:\\PythonData\\shontock\\list\\hs_a_board.xls', 'D:\\PythonData\\stock\\data\\', 'D:\\PytData\\shontock\\list\\leak.xls')
+    # check_cmfb_exist_by_date('D:\\PythonData\\stock\\list\\hs_a_board.xls', \
+    #                          'D:\\PythonData\\stock\\data\\', \
     #                          date, \
-    #                          'D:\\leak_by_date'+ date + '.xls')
-    analyze_cmfb('D:\\OneDrive\\stock\\list\\hs_a_board.xls', \
-                             'D:\\OneDrive\\stock\\data\\', \
-                             'D:\\OneDrive\\stock\\analysis\\hs_a_board'+ date + '.xls')
+    #                          'D:\\PythonData\\stock\\list\\leak_by_date'+ date + '.xls')
+    analyze_cmfb('D:\\PythonData\\stock\\list\\hs_a_board.xls', \
+                             'D:\\PythonData\\stock\\data\\', \
+                             'D:\\PythonData\\stock\\analysis\\hs_a_board'+ date + '.xls')
 
 
     

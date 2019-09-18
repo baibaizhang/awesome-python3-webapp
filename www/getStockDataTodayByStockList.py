@@ -9,11 +9,9 @@ from eastmoney import EastMoneyConcept
 import os,shutil,time,zipfile
 
 def get_cmfb_today_by_stock_list_path(stock_list_path, data_root_path, bak_root_path):
-    date = time.strftime('%Y%m%d%H%M%S')
-    
-    
     east = EastMoneyConcept()
     east.get_today_by_stock_list_path(stock_list_path, data_root_path)
+    date = time.strftime('%Y%m%d%H%M%S')
     # 压缩
     zip_file_name = data_root_path[:-1]+date+'.zip'
     print("压缩开始 :" + zip_file_name)
