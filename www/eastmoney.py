@@ -112,7 +112,8 @@ class EastMoneyStockList(EastMoney):
         #关闭浏览器          
         browser.quit()   
         # 按照code从小到大排序
-        stock_list.sort(key=lambda k: (k.get('code', 0)))
+        # stock_list.sort(key=lambda k: (k.get('code', 0)))
+        stock_list = self._distinct(stock_list, 'code')
         return stock_list
 
     def get_stock_list(self, market_name, save_path, except_code_list = []):

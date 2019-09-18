@@ -8,18 +8,24 @@ get stock list
 from eastmoney import EastMoneyConcept
 import os,shutil,time,zipfile
 
-def get_cmfb_today_by_stock_list_path(stock_list_path, root_path):
+def get_cmfb_today_by_stock_list_path(stock_list_path, data_root_path, bak_root_path):
     date = time.strftime('%Y%m%d%H%M%S')
-    # bak_root_path = root_path[:-1] + '-bak-'+date
-    # print("备份开始 :" + bak_root_path)
-    # shutil.copytree(root_path, bak_root_path)
-    # print("备份结束 :" + bak_root_path)
-    zip_file_name = root_path[:-1]+date+'.zip'
-    print("备份压缩开始 :" + zip_file_name)
-    make_zip(root_path, zip_file_name)
-    print("备份压缩结束 :" + zip_file_name)
+    
+    
     east = EastMoneyConcept()
-    east.get_today_by_stock_list_path(stock_list_path, root_path)
+    east.get_today_by_stock_list_path(stock_list_path, data_root_path)
+    # 压缩
+    zip_file_name = data_root_path[:-1]+date+'.zip'
+    print("压缩开始 :" + zip_file_name)
+    make_zip(data_root_path, zip_file_name)
+    print("压缩结束")
+    # 备份
+    # bak_root_path = bak_root_path[:-1] + '-bak-'+date
+    print("备份开始 :" + bak_root_path)
+    shutil.copy(zip_file_name, bak_root_path)
+    # shutil.copytree(root_path, bak_root_path)
+    print("备份结束")
+
 
 #打包目录为zip文件
 def make_zip(source_dir, output_filename):
@@ -34,7 +40,9 @@ def make_zip(source_dir, output_filename):
     zipf.close()
 
 if __name__ == '__main__':
-    get_cmfb_today_by_stock_list_path('D:\\OneDrive\\stock\\list\\hs_a_board.xls', 'D:\\OneDrive\\stock\\data\\')
+    get_cmfb_today_by_stock_list_path('D:\\PythonData\\stock\\list\\hs_a_board.xls',\
+                                      'D:\\PythonData\\stock\\data\\',\
+                                      'D:\\OneDrive\\stock\\data\\' )
 
 
 
