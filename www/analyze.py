@@ -79,15 +79,22 @@ def analyze_cmfb(stock_list_path, stock_data_root_path, save_path):
     index = 0
     for stock in stock_list:
         analyze_data = stock
-        stock_data_path = stock_data_root_path + stock['code'] + '.xls'
-        excel_cmfb = ExcelData(stock_data_path)
-        data = excel_cmfb.read_excel_last_row() 
-        analyze_data['日期'] = data['日期']
-        analyze_data['获利比例'] = data['获利比例']
-        analyze_data['平均成本'] = data['平均成本']
-        analyze_data['收盘'] = data['收盘']
-        analyze_data['url'] = get_url(stock['code'])
-        analyze_data_list.append(analyze_data)
+        code = stock['code']
+        if isinstance(code, float):
+            code = str(code)
+        try:
+            stock_data_path = stock_data_root_path + code + '.xls'
+            excel_cmfb = ExcelData(stock_data_path)
+            data = excel_cmfb.read_excel_last_row() 
+            analyze_data['日期'] = data['日期']
+            analyze_data['获利比例'] = data['获利比例']
+            analyze_data['平均成本'] = data['平均成本']
+            analyze_data['收盘'] = data['收盘']
+            analyze_data['url'] = get_url(code)
+            analyze_data_list.append(analyze_data)
+        except Exception as e:
+            print(e)
+        
         index += 1
         progress = format((index/count)*100, '.2f')+'%'
         print(progress)
@@ -97,6 +104,24 @@ def analyze_cmfb(stock_list_path, stock_data_root_path, save_path):
     print('文件以保存到：' + save_path)
 
 
+def analyze_cmfg_5g():
+    date = time.strftime('%Y-%m-%d')
+    analyze_cmfb('D:\\PythonData\\stock\\list\\huawei5G.xls', \
+                             'D:\\PythonData\\stock\\data\\', \
+                             'D:\\PythonData\\stock\\analysis\\huawei5G'+ date + '.xls')
+
+def analyze_cmfb_all():
+    date = time.strftime('%Y-%m-%d')
+    analyze_cmfb('D:\\PythonData\\stock\\list\\hs_a_board.xls', \
+                            'D:\\PythonData\\stock\\data\\', \
+                            'D:\\PythonData\\stock\\analysis\\hs_a_board'+ date + '.xls')
+
+def analyze_cmfb_trace():
+    date = time.strftime('%Y-%m-%d')
+    analyze_cmfb('D:\\PythonData\\stock\\list\\trace.xls', \
+                            'D:\\PythonData\\stock\\data\\', \
+                            'D:\\PythonData\\stock\\analysis\\trace'+ date + '.xls')
+
 def main():
     date = time.strftime('%Y-%m-%d')
     # check('D:\\PythonData\\shontock\\list\\hs_a_board.xls', 'D:\\PythonData\\stock\\data\\', 'D:\\PytData\\shontock\\list\\leak.xls')
@@ -104,9 +129,9 @@ def main():
     #                          'D:\\PythonData\\stock\\data\\', \
     #                          date, \
     #                          'D:\\PythonData\\stock\\list\\leak_by_date'+ date + '.xls')
-    analyze_cmfb('D:\\PythonData\\stock\\list\\hs_a_board.xls', \
-                             'D:\\PythonData\\stock\\data\\', \
-                             'D:\\PythonData\\stock\\analysis\\hs_a_board'+ date + '.xls')
+    # analyze_cmfb_all()
+    # analyze_cmfg_5g()
+    analyze_cmfb_trace()
 
 
     
