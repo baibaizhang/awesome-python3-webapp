@@ -134,6 +134,47 @@ def main():
     analyze_cmfb_trace()
 
 
+'''
+分析最近的一次成交额大于前面n天的平均成交额的倍数
+:param stock_list_path  列表文件路径
+:param stock_data_root_path 所有数据路径
+:param save_path 分析完后数据保存的路径
+:param before_days  前面n天
+:param rate  倍数，浮点数，可以为0.x倍
+'''
+def analyse_volume(stock_list_path, stock_data_root_path, save_path, before_days, rate):
+    excel_read = ExcelData(stock_list_path)
+    stock_list = excel_read.read_excel()
+    analyze_data_list = []
+    count = len(stock_list)
+    index = 0
+    for stock in stock_list:
+        analyze_data = stock
+        code = stock['code']
+        if isinstance(code, float):
+            code = str(code)
+        try:
+            stock_data_path = stock_data_root_path + code + '.xls'
+            excel_cmfb = ExcelData(stock_data_path)
+            data_list = excel_cmfb.read_excel_last_n_row(before_days+1) 
+
+            # TODO
+            analyze_data['日期'] = data['日期']
+            analyze_data['获利比例'] = data['获利比例']
+            analyze_data['平均成本'] = data['平均成本']
+            analyze_data['收盘'] = data['收盘']
+            analyze_data['url'] = get_url(code)
+            analyze_data_list.append(analyze_data)
+        except Exception as e:
+            print(e)
+        
+        index += 1
+        progress = format((index/count)*100, '.2f')+'%'
+        print(progress)
+    analyze_data_list = distinct(analyze_data_list, 'code')
+    excel_write = ExcelData(save_path)
+    excel_write.write_excel(analyze_data_list)
+    print('文件以保存到：' + save_path)
     
  
 

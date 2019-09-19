@@ -51,6 +51,35 @@ class ExcelData(object):
             #print(type(L))
             return sheet_data
 
+    '''
+    读取最后n行数据，如果总行数小于n，返回所有的数据
+    返回值：
+        L  所有数据的列表
+    '''
+    def read_excel_last_n_row(self, n):
+        data = xlrd.open_workbook(self.data_path)             # 打开excel表格
+        table = data.sheet_by_name(self.sheetname)       # 切换到相应sheet
+        keys = table.row_values(0)                       # 第一行作为key值
+        rowNum = table.nrows                             # 获取表格行数
+        colNum = table.ncols                             # 获取表格列数
+
+        if rowNum < 2:
+            print("excle内数据行数小于2")
+            return None
+        elif (rowNum - 1) < n:
+            start_row = 1
+        else: 
+            start_row = rowNum - n
+
+        L = []                                                 #列表L存放取出的数据
+        for i in range(start_row,rowNum):                         #从第二行（数据行）开始取数据
+            sheet_data = {}                                    #定义一个字典用来存放对应数据
+            for j in range(colNum):                       #j对应列值
+                sheet_data[keys[j]] = table.row_values(i)[j]    #把第i行第j列的值取出赋给第j列的键值，构成字典
+            L.append(sheet_data)                               #一行值取完之后（一个字典），追加到L列表中
+        #print(type(L))
+        return L
+
     def write_excel(self, data):
         lis=data
         listkeys = lis[0].keys()  # 找到所有的键值
@@ -116,7 +145,9 @@ class ExcelData(object):
 
 
 if __name__ == '__main__':
-    data_path = "D:\\pythonData\\000001.xls"  #文件的绝对路径
+    data_path = "D:\\PythonData\\stock\\data\\000001.xls"  #文件的绝对路径
     get_data = ExcelData(data_path)                       #定义get_data对象, sheet名称默认Sheet1
     # print(get_data.read_excel())
-    get_data.get_column_data('日期')
+    data_list = get_data.read_excel_last_n_row(70)
+    print(len(data_list))
+    print(data_list)
