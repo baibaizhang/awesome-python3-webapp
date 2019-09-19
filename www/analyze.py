@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
  
-import requests,time,os,xlwt,xlrd,random
+import requests,time,os,xlwt,xlrd,random,re
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
@@ -104,42 +104,22 @@ def analyze_cmfb(stock_list_path, stock_data_root_path, save_path):
     print('文件以保存到：' + save_path)
 
 
-def analyze_cmfg_5g():
-    date = time.strftime('%Y-%m-%d')
-    analyze_cmfb('D:\\PythonData\\stock\\list\\huawei5G.xls', \
-                             'D:\\PythonData\\stock\\data\\', \
-                             'D:\\PythonData\\stock\\analysis\\huawei5G'+ date + '.xls')
-
-def analyze_cmfb_all():
-    date = time.strftime('%Y-%m-%d')
-    analyze_cmfb('D:\\PythonData\\stock\\list\\hs_a_board.xls', \
-                            'D:\\PythonData\\stock\\data\\', \
-                            'D:\\PythonData\\stock\\analysis\\hs_a_board'+ date + '.xls')
-
-def analyze_cmfb_trace():
-    date = time.strftime('%Y-%m-%d')
-    analyze_cmfb('D:\\PythonData\\stock\\list\\trace.xls', \
-                            'D:\\PythonData\\stock\\data\\', \
-                            'D:\\PythonData\\stock\\analysis\\trace'+ date + '.xls')
-
-def analyze_cmfb_performance_up():
-    date = time.strftime('%Y-%m-%d')
-    analyze_cmfb('D:\\PythonData\\stock\\list\\performance_up.xls', \
-                            'D:\\PythonData\\stock\\data\\', \
-                            'D:\\PythonData\\stock\\analysis\\performance_up'+ date + '.xls')
-
-def main():
-    date = time.strftime('%Y-%m-%d')
-    # check('D:\\PythonData\\shontock\\list\\hs_a_board.xls', 'D:\\PythonData\\stock\\data\\', 'D:\\PytData\\shontock\\list\\leak.xls')
-    # check_cmfb_exist_by_date('D:\\PythonData\\stock\\list\\hs_a_board.xls', \
-    #                          'D:\\PythonData\\stock\\data\\', \
-    #                          date, \
-    #                          'D:\\PythonData\\stock\\list\\leak_by_date'+ date + '.xls')
-    # analyze_cmfb_all()
-    # analyze_cmfg_5g()
-    analyze_cmfb_performance_up()
-    # analyze_cmfb_trace()
-
+def get_number(str):
+    res = re.findall(r'\d+\.?\d*', str)
+    num = float(res[0])
+    a_list = re.findall(r'[\u4e00-\u9fa5]', str)
+    if '万' in a_list:
+        return num*10000
+    elif '亿' in a_list:
+        return num*100000000
+    else:
+        return num
+    # if str.find(u'\u4e07'): #万
+    #     return num*10000
+    # elif str.find(u'\u4ebf'):#亿
+    #     return num*100000000
+    # else:
+    #     return num
 
 '''
 分析最近的一次成交额大于前面n天的平均成交额的倍数
@@ -149,7 +129,7 @@ def main():
 :param before_days  前面n天
 :param rate  倍数，浮点数，可以为0.x倍
 '''
-def analyse_volume(stock_list_path, stock_data_root_path, save_path, before_days, rate):
+def analyse_volume(stock_list_path, stock_data_root_path, save_path, before_days):
     excel_read = ExcelData(stock_list_path)
     stock_list = excel_read.read_excel()
     analyze_data_list = []
@@ -165,11 +145,32 @@ def analyse_volume(stock_list_path, stock_data_root_path, save_path, before_days
             excel_cmfb = ExcelData(stock_data_path)
             data_list = excel_cmfb.read_excel_last_n_row(before_days+1) 
 
+            numbers = len(data_list)
+            sum_volume = 0
+            for i in range(numbers-1):
+                volume = get_number(data_list[i]['成交量'])
+                # volume = filter(str.isdigit,  data_list[i]['成交量'])
+                sum_volume += volume
+            last_volume = get_number(data_list[-1]['成交量'])
+            the_before_day_volume = get_number(data_list[-2]['成交量'])
+                
+            before_days_str = '前'+str(before_days) + '平均成交量'
+            today_str = '最近一天成交量'
+            the_before_day= '前一天成交量'
+            rate_before_days = '与前'+str(before_days) +'比值'
+            rate_the_before_day = '与前1天比值'
+            average_volume = sum_volume/(numbers-1)
             # TODO
+            data = data_list[-1]
             analyze_data['日期'] = data['日期']
             analyze_data['获利比例'] = data['获利比例']
             analyze_data['平均成本'] = data['平均成本']
             analyze_data['收盘'] = data['收盘']
+            analyze_data[before_days_str] = format(average_volume,'.2f')
+            analyze_data[the_before_day] = format(the_before_day_volume,'.2f')
+            analyze_data[today_str] = format(last_volume,'.2f')
+            analyze_data[rate_before_days] = format(last_volume/average_volume, '.2f')
+            analyze_data[rate_the_before_day] = format(last_volume/the_before_day_volume, '.2f')
             analyze_data['url'] = get_url(code)
             analyze_data_list.append(analyze_data)
         except Exception as e:
@@ -183,6 +184,48 @@ def analyse_volume(stock_list_path, stock_data_root_path, save_path, before_days
     excel_write.write_excel(analyze_data_list)
     print('文件以保存到：' + save_path)
     
+
+def analyze_cmfg_5g():
+    date = time.strftime('%Y-%m-%d')
+    analyse_volume('D:\\PythonData\\stock\\list\\huawei5G.xls', \
+                             'D:\\PythonData\\stock\\data\\', \
+                             'D:\\PythonData\\stock\\analysis\\huawei5G'+ date + '.xls',20)
+
+def analyze_cmfb_all():
+    date = time.strftime('%Y-%m-%d')
+    analyse_volume('D:\\PythonData\\stock\\list\\hs_a_board.xls', \
+                            'D:\\PythonData\\stock\\data\\', \
+                            'D:\\PythonData\\stock\\analysis\\hs_a_board'+ date + '.xls',20)
+
+def analyze_cmfb_trace():
+    date = time.strftime('%Y-%m-%d')
+    analyse_volume('D:\\PythonData\\stock\\list\\trace.xls', \
+                            'D:\\PythonData\\stock\\data\\', \
+                            'D:\\PythonData\\stock\\analysis\\trace'+ date + '.xls',20)
+
+def analyze_cmfb_performance_up():
+    date = time.strftime('%Y-%m-%d')
+    analyse_volume('D:\\PythonData\\stock\\list\\performance_up.xls', \
+                            'D:\\PythonData\\stock\\data\\', \
+                            'D:\\PythonData\\stock\\analysis\\performance_up'+ date + '.xls',20)
+
+def main():
+    date = time.strftime('%Y-%m-%d')
+    # check('D:\\PythonData\\shontock\\list\\hs_a_board.xls', 'D:\\PythonData\\stock\\data\\', 'D:\\PytData\\shontock\\list\\leak.xls')
+    # check_cmfb_exist_by_date('D:\\PythonData\\stock\\list\\hs_a_board.xls', \
+    #                          'D:\\PythonData\\stock\\data\\', \
+    #                          date, \
+    #                          'D:\\PythonData\\stock\\list\\leak_by_date'+ date + '.xls')
+    analyze_cmfb_all()
+    analyze_cmfg_5g()
+    analyze_cmfb_performance_up()
+    analyze_cmfb_trace()
+    # analyse_volume('D:\\PythonData\\stock\\list\\hs_a_board.xls', \
+    #                         'D:\\PythonData\\stock\\data\\', \
+    #                         'D:\\PythonData\\stock\\analysis\\hs_a_board_volume'+ date + '.xls', 20)
+
+
+
  
 
 if __name__ == '__main__':

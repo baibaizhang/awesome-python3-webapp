@@ -148,6 +148,6 @@ if __name__ == '__main__':
     data_path = "D:\\PythonData\\stock\\data\\000001.xls"  #文件的绝对路径
     get_data = ExcelData(data_path)                       #定义get_data对象, sheet名称默认Sheet1
     # print(get_data.read_excel())
-    data_list = get_data.read_excel_last_n_row(70)
-    print(len(data_list))
-    print(data_list)
+    # data_list = get_data.read_excel_last_n_row(70)
+    # print(len(data_list))
+    # print(data_list)

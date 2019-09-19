@@ -41,6 +41,9 @@ if __name__ == '__main__':
     get_cmfb_today_by_stock_list_path('D:\\PythonData\\stock\\list\\hs_a_board.xls',\
                                       'D:\\PythonData\\stock\\data\\',\
                                       'D:\\OneDrive\\stock\\data\\' )
+    # get_cmfb_today_by_stock_list_path('D:\\PythonData\\stock\\list\\leak_list.xls',\
+    #                                   'D:\\PythonData\\stock\\data\\',\
+    #                                   'D:\\OneDrive\\stock\\data\\' )
 
 
 
