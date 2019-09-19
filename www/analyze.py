@@ -122,6 +122,12 @@ def analyze_cmfb_trace():
                             'D:\\PythonData\\stock\\data\\', \
                             'D:\\PythonData\\stock\\analysis\\trace'+ date + '.xls')
 
+def analyze_cmfb_performance_up():
+    date = time.strftime('%Y-%m-%d')
+    analyze_cmfb('D:\\PythonData\\stock\\list\\performance_up.xls', \
+                            'D:\\PythonData\\stock\\data\\', \
+                            'D:\\PythonData\\stock\\analysis\\performance_up'+ date + '.xls')
+
 def main():
     date = time.strftime('%Y-%m-%d')
     # check('D:\\PythonData\\shontock\\list\\hs_a_board.xls', 'D:\\PythonData\\stock\\data\\', 'D:\\PytData\\shontock\\list\\leak.xls')
@@ -131,7 +137,8 @@ def main():
     #                          'D:\\PythonData\\stock\\list\\leak_by_date'+ date + '.xls')
     # analyze_cmfb_all()
     # analyze_cmfg_5g()
-    analyze_cmfb_trace()
+    analyze_cmfb_performance_up()
+    # analyze_cmfb_trace()
 
 
 '''
