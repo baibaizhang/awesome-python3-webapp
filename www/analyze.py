@@ -1,14 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
  
-import requests,time,os,xlwt,xlrd,random,re
-from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from fake_useragent import UserAgent
+import time,os,random,re
 
 from operator import itemgetter
 from itertools import groupby
@@ -114,12 +107,6 @@ def get_number(str):
         return num*100000000
     else:
         return num
-    # if str.find(u'\u4e07'): #万
-    #     return num*10000
-    # elif str.find(u'\u4ebf'):#亿
-    #     return num*100000000
-    # else:
-    #     return num
 
 '''
 分析最近的一次成交额大于前面n天的平均成交额的倍数
@@ -129,7 +116,7 @@ def get_number(str):
 :param before_days  前面n天
 :param rate  倍数，浮点数，可以为0.x倍
 '''
-def analyse_volume(stock_list_path, stock_data_root_path, save_path, before_days):
+def analyse_items(stock_list_path, stock_data_root_path, save_path, min_PE = None, max_win_percent = 100, min_exchange_rate = 0, before_days = 20):
     excel_read = ExcelData(stock_list_path)
     stock_list = excel_read.read_excel()
     analyze_data_list = []
@@ -141,9 +128,22 @@ def analyse_volume(stock_list_path, stock_data_root_path, save_path, before_days
         if isinstance(code, float):
             code = str(code)
         try:
+            if not min_PE is None:
+                if float(stock['市盈率']) < min_PE:
+                    index += 1
+                    continue
             stock_data_path = stock_data_root_path + code + '.xls'
             excel_cmfb = ExcelData(stock_data_path)
             data_list = excel_cmfb.read_excel_last_n_row(before_days+1) 
+            last_win_percent = get_number(data_list[-1]['获利比例'])
+            if last_win_percent > max_win_percent:
+                index += 1
+                continue
+
+            last_exchange_rate = get_number(data_list[-1]['换手率'])
+            if last_exchange_rate < min_exchange_rate:
+                index += 1
+                continue
 
             numbers = len(data_list)
             sum_volume = 0
@@ -166,6 +166,8 @@ def analyse_volume(stock_list_path, stock_data_root_path, save_path, before_days
             analyze_data['获利比例'] = data['获利比例']
             analyze_data['平均成本'] = data['平均成本']
             analyze_data['收盘'] = data['收盘']
+            analyze_data['收平比'] = format(float(data['收盘'])/float(data['平均成本']),'.2f')
+            analyze_data['换手率'] = data['换手率']
             analyze_data[before_days_str] = format(average_volume,'.2f')
             analyze_data[the_before_day] = format(the_before_day_volume,'.2f')
             analyze_data[today_str] = format(last_volume,'.2f')
@@ -179,54 +181,55 @@ def analyse_volume(stock_list_path, stock_data_root_path, save_path, before_days
         index += 1
         progress = format((index/count)*100, '.2f')+'%'
         print(progress)
-    analyze_data_list = distinct(analyze_data_list, 'code')
+    # analyze_data_list = distinct(analyze_data_list, 'code')
     excel_write = ExcelData(save_path)
     excel_write.write_excel(analyze_data_list)
     print('文件以保存到：' + save_path)
     
+def analyze(list_file_name, min_PE = None, max_win_percent = 100, min_exchange_rate = 0, before_days = 20):
+    date = time.strftime('%Y-%m-%d')
+    min_PE_str = ''
+    if not min_PE is None:
+        min_PE_str = '-市盈率大于'+str(min_PE)
+    max_win_percent_str = '-获利比例小于' + str(max_win_percent)+'%'
+    min_exchange_rate_str = ''
+    if min_exchange_rate > 0:
+        min_exchange_rate_str = '-换手率大于'+str(min_exchange_rate)+'%'
+    before_days_str = '-统计前' + str(before_days) + '天交易量'
+
+    analyse_items('D:\\PythonData\\stock\\list\\' + list_file_name+ '.xls', \
+                            'D:\\PythonData\\stock\\data\\', \
+                            'D:\\PythonData\\stock\\analysis\\'+ list_file_name +'-'+date + min_PE_str + max_win_percent_str+min_exchange_rate_str + before_days_str+ '.xls',\
+                                min_PE, max_win_percent, min_exchange_rate, before_days)
 
 def analyze_cmfg_5g():
-    date = time.strftime('%Y-%m-%d')
-    analyse_volume('D:\\PythonData\\stock\\list\\huawei5G.xls', \
-                             'D:\\PythonData\\stock\\data\\', \
-                             'D:\\PythonData\\stock\\analysis\\huawei5G'+ date + '.xls',20)
-
-def analyze_cmfb_all():
-    date = time.strftime('%Y-%m-%d')
-    analyse_volume('D:\\PythonData\\stock\\list\\hs_a_board.xls', \
-                            'D:\\PythonData\\stock\\data\\', \
-                            'D:\\PythonData\\stock\\analysis\\hs_a_board'+ date + '.xls',20)
+    # date = time.strftime('%Y-%m-%d')
+    # analyse_volume('D:\\PythonData\\stock\\list\\huawei5G.xls', \
+    #                          'D:\\PythonData\\stock\\data\\', \
+    #                          'D:\\PythonData\\stock\\analysis\\huawei5G'+ date + '.xls',before_days=20)
+    analyze('huawei5G')
 
 def analyze_cmfb_trace():
-    date = time.strftime('%Y-%m-%d')
-    analyse_volume('D:\\PythonData\\stock\\list\\trace.xls', \
-                            'D:\\PythonData\\stock\\data\\', \
-                            'D:\\PythonData\\stock\\analysis\\trace'+ date + '.xls',20)
+    # date = time.strftime('%Y-%m-%d')
+    # analyse_volume('D:\\PythonData\\stock\\list\\trace.xls', \
+    #                         'D:\\PythonData\\stock\\data\\', \
+    #                         'D:\\PythonData\\stock\\analysis\\trace'+ date + '.xls',before_days=20)
+    analyze('trace')
 
 def analyze_cmfb_performance_up():
-    date = time.strftime('%Y-%m-%d')
-    analyse_volume('D:\\PythonData\\stock\\list\\performance_up.xls', \
-                            'D:\\PythonData\\stock\\data\\', \
-                            'D:\\PythonData\\stock\\analysis\\performance_up'+ date + '.xls',20)
+    # date = time.strftime('%Y-%m-%d')
+    # analyse_volume('D:\\PythonData\\stock\\list\\performance_up.xls', \
+    #                         'D:\\PythonData\\stock\\data\\', \
+    #                         'D:\\PythonData\\stock\\analysis\\performance_up'+ date + '.xls',before_days=20)
+    analyze('performance_up')
 
 def main():
-    date = time.strftime('%Y-%m-%d')
-    # check('D:\\PythonData\\shontock\\list\\hs_a_board.xls', 'D:\\PythonData\\stock\\data\\', 'D:\\PytData\\shontock\\list\\leak.xls')
-    # check_cmfb_exist_by_date('D:\\PythonData\\stock\\list\\hs_a_board.xls', \
-    #                          'D:\\PythonData\\stock\\data\\', \
-    #                          date, \
-    #                          'D:\\PythonData\\stock\\list\\leak_by_date'+ date + '.xls')
-    analyze_cmfb_all()
-    analyze_cmfg_5g()
-    analyze_cmfb_performance_up()
-    analyze_cmfb_trace()
-    # analyse_volume('D:\\PythonData\\stock\\list\\hs_a_board.xls', \
-    #                         'D:\\PythonData\\stock\\data\\', \
-    #                         'D:\\PythonData\\stock\\analysis\\hs_a_board_volume'+ date + '.xls', 20)
-
-
-
- 
+    # analyze('hs_a_board',min_PE=0,max_win_percent=50,min_exchange_rate=4,before_days=20)
+    # analyze('performance_up')
+    # analyze('huawei5G')
+    # analyze('trace') 
+    # analyze('top_list')
+    analyze('science_chip')
 
 if __name__ == '__main__':
     main()

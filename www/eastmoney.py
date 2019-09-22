@@ -64,7 +64,7 @@ class EastMoneyStockList(EastMoney):
                     ,'kcb_board':'http://quote.eastmoney.com/center/gridlist.html#kcb_board'}
         return market_list[market_name]
 
-    def parse_page(self, market_name, except_code_list = []):
+    def parse_page(self, market_name, except_code_list = [], except_name_list = []):
         stock_list = []
         url = self._get_url(market_name)
         #启动浏览器
@@ -91,11 +91,19 @@ class EastMoneyStockList(EastMoney):
                     if a[0].contents[0].startswith(except_code):
                         is_except = True
                         break
+                for except_name in except_name_list:
+                    if a[1].contents[0].startswith(except_name):
+                        is_except = True
+                        break
                 if is_except:
                     continue
 
+                td = tr.findAll('td')
+
                 stock['code'] = a[0].contents[0]
                 stock['名称'] = a[1].contents[0]
+                stock['市盈率'] = td[-3].contents[0]
+                stock['市净率'] = td[-2].contents[0]
 
                 stock_list.append(stock)
                 # print(stock)
@@ -116,8 +124,8 @@ class EastMoneyStockList(EastMoney):
         stock_list = self._distinct(stock_list, 'code')
         return stock_list
 
-    def get_stock_list(self, market_name, save_path, except_code_list = []):
-        data_list = self.parse_page(market_name, except_code_list)
+    def get_stock_list(self, market_name, save_path, except_code_list = [], except_name_list = []):
+        data_list = self.parse_page(market_name, except_code_list, except_name_list)
         self._save_data(market_name, save_path,data_list)
     
     def _save_data(self,market_name, save_path, data_list):

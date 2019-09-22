@@ -38,12 +38,12 @@ def make_zip(source_dir, output_filename):
     zipf.close()
 
 if __name__ == '__main__':
-    get_cmfb_today_by_stock_list_path('D:\\PythonData\\stock\\list\\hs_a_board.xls',\
-                                      'D:\\PythonData\\stock\\data\\',\
-                                      'D:\\OneDrive\\stock\\data\\' )
-    # get_cmfb_today_by_stock_list_path('D:\\PythonData\\stock\\list\\leak_list.xls',\
+    # get_cmfb_today_by_stock_list_path('D:\\PythonData\\stock\\list\\hs_a_board.xls',\
     #                                   'D:\\PythonData\\stock\\data\\',\
     #                                   'D:\\OneDrive\\stock\\data\\' )
+    get_cmfb_today_by_stock_list_path('D:\\PythonData\\stock\\list\\leak_list.xls',\
+                                      'D:\\PythonData\\stock\\data\\',\
+                                      'D:\\OneDrive\\stock\\data\\' )
 
 
 

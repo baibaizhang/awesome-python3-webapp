@@ -13,7 +13,20 @@ def get_stock_list():
     save_path = 'D:\\PythonData\\stock\\list\\'+ 'hs_a_board'+ '.xls'
     bak_root_path = 'D:\\OneDrive\\stock\\list\\'
     
-    east.get_stock_list('hs_a_board',save_path, except_code_list=['300','688']) #去除300，688开头的
+    east.get_stock_list('hs_a_board',save_path, except_code_list=['300','688'], except_name_list=['ST','*ST']) #去除300，688开头的
+    # east.get_stock_list('hs_a_board',save_path)
+    date = time.strftime('%Y%m%d%H%M%S')
+    if (os.path.exists(save_path)):
+        bak_path = save_path[:-4]+ date + '.xls'
+        shutil.copy(save_path, bak_path)
+        shutil.copy(bak_path, bak_root_path)
+
+def get_stock_list1():
+    east = EastMoneyStockList()
+    save_path = 'D:\\PythonData\\stock\\list\\'+ 'kcb_board'+ '.xls'
+    bak_root_path = 'D:\\OneDrive\\stock\\list\\'
+    
+    east.get_stock_list('kcb_board',save_path) #去除300，688开头的
     # east.get_stock_list('hs_a_board',save_path)
     date = time.strftime('%Y%m%d%H%M%S')
     if (os.path.exists(save_path)):
