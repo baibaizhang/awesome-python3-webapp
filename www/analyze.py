@@ -13,7 +13,7 @@ def distinct(items,key, reverse=False):
     items = sorted(items, key=key, reverse=reverse)
     return [next(v) for _, v in groupby(items, key=key)]
  
-def get_url(code):
+def get_cmfb_url(code):
     code_map = {'60': 'sh', '00':'sz', '30':'sz', '688':'sh'}
     code_str = ''
     if isinstance(code, int):
@@ -25,6 +25,17 @@ def get_url(code):
     for item in code_map:
         if code_str.startswith(item):
             return "http://quote.eastmoney.com/concept/" + code_map[item] + code_str + ".html"
+
+def get_zjlx_url(code):
+    code_str = ''
+    if isinstance(code, int):
+        code_str = str(code)
+    elif isinstance(code, float):
+        code_str = str(code)
+    elif isinstance(code, str):
+        code_str = code
+
+    return "http://data.eastmoney.com/zjlx/" + code_str + ".html"
 
 def check(stock_list_path, stock_data_root_path, leak_path):
     excel_read = ExcelData(stock_list_path)
@@ -83,7 +94,7 @@ def analyze_cmfb(stock_list_path, stock_data_root_path, save_path):
             analyze_data['获利比例'] = data['获利比例']
             analyze_data['平均成本'] = data['平均成本']
             analyze_data['收盘'] = data['收盘']
-            analyze_data['url'] = get_url(code)
+            analyze_data['url'] = get_cmfb_url(code)
             analyze_data_list.append(analyze_data)
         except Exception as e:
             print(e)
@@ -173,7 +184,8 @@ def analyse_items(stock_list_path, stock_data_root_path, save_path, min_PE = Non
             analyze_data[today_str] = format(last_volume,'.2f')
             analyze_data[rate_before_days] = format(last_volume/average_volume, '.2f')
             analyze_data[rate_the_before_day] = format(last_volume/the_before_day_volume, '.2f')
-            analyze_data['url'] = get_url(code)
+            analyze_data['cmfb_url'] = get_cmfb_url(code)
+            analyze_data['zjlx_url'] = get_zjlx_url(code)
             analyze_data_list.append(analyze_data)
         except Exception as e:
             print(e)
@@ -224,11 +236,11 @@ def analyze_cmfb_performance_up():
     analyze('performance_up')
 
 def main():
-    # analyze('hs_a_board',min_PE=0,max_win_percent=50,min_exchange_rate=4,before_days=20)
-    # analyze('performance_up')
-    # analyze('huawei5G')
-    # analyze('trace') 
-    # analyze('top_list')
+    analyze('hs_a_board',min_PE=0,max_win_percent=50,min_exchange_rate=4,before_days=20)
+    analyze('performance_up')
+    analyze('huawei5G')
+    analyze('trace') 
+    analyze('top_list')
     analyze('science_chip')
 
 if __name__ == '__main__':
